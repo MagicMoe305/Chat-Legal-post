@@ -1,0 +1,259 @@
+import React, { useState, useEffect } from 'react';
+import { MessageSquare, Users, Clock, ThumbsUp, ThumbsDown, Send } from 'lucide-react';
+
+const LegalBulletinBoard = () => {
+  const [questions, setQuestions] = useState([]);
+  const [newQuestion, setNewQuestion] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [responses, setResponses] = useState({});
+  const [currentUser] = useState('You'); // In real app, this would be authenticated user
+
+  // Initial sample data
+  useEffect(() => {
+    const initialQuestions = [
+      {
+        id: 1,
+        author: 'Sarah M.',
+        practice: 'Corporate Law',
+        question: 'Has anyone dealt with cross-border M&A compliance issues under the new EU regulations?',
+        category: 'Corporate',
+        timestamp: '2 hours ago',
+        responses: 3,
+        votes: 5
+      },
+      {
+        id: 2,
+        author: 'David R.',
+        practice: 'Employment Law',
+        question: 'Looking for precedent on remote work classification disputes. Any recent cases?',
+        category: 'Employment',
+        timestamp: '4 hours ago',
+        responses: 7,
+        votes: 12
+      },
+      {
+        id: 3,
+        author: 'Lisa K.',
+        practice: 'IP Law',
+        question: 'AI-generated content copyright issues - how are courts handling this currently?',
+        category: 'IP',
+        timestamp: '1 day ago',
+        responses: 15,
+        votes: 23
+      }
+    ];
+
+    const initialResponses = {
+      1: [
+        { author: 'Mike T.', practice: 'International Law', content: 'Yes, dealt with this last month. Key is the new Article 14 compliance framework...', votes: 3 },
+        { author: 'Anna P.', practice: 'Corporate Law', content: 'Check the recent ECJ ruling in Case C-123/24. Game changer for due diligence.', votes: 2 }
+      ],
+      2: [
+        { author: 'Robert L.', practice: 'Employment Law', content: 'See Johnson v. TechCorp (2024). Court sided with employee classification.', votes: 5 },
+        { author: 'Maria S.', practice: 'Labor Law', content: 'I have the brief from a similar case. DM me if interested.', votes: 1 }
+      ]
+    };
+
+    setQuestions(initialQuestions);
+    setResponses(initialResponses);
+  }, []);
+
+  const categories = ['all', 'Corporate', 'Employment', 'IP', 'Criminal', 'Family', 'Real Estate'];
+
+  const handleSubmitQuestion = () => {
+    if (!newQuestion.trim()) return;
+    
+    const newQ = {
+      id: Date.now(),
+      author: currentUser,
+      practice: 'Your Practice Area',
+      question: newQuestion,
+      category: 'General',
+      timestamp: 'just now',
+      responses: 0,
+      votes: 0
+    };
+    
+    setQuestions([newQ, ...questions]);
+    setNewQuestion('');
+  };
+
+  const handleAddResponse = (questionId, responseText) => {
+    if (!responseText.trim()) return;
+    
+    const newResponse = {
+      author: currentUser,
+      practice: 'Your Practice Area',
+      content: responseText,
+      votes: 0
+    };
+    
+    setResponses(prev => ({
+      ...prev,
+      [questionId]: [...(prev[questionId] || []), newResponse]
+    }));
+    
+    setQuestions(prev => 
+      prev.map(q => 
+        q.id === questionId 
+          ? { ...q, responses: q.responses + 1 }
+          : q
+      )
+    );
+  };
+
+  const filteredQuestions = selectedCategory === 'all' 
+    ? questions 
+    : questions.filter(q => q.category === selectedCategory);
+
+  return (
+    <div className="max-w-4xl mx-auto p-6 bg-gray-50 min-h-screen">
+      <div className="bg-white rounded-lg shadow-sm mb-6 p-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Legal Professionals Network</h1>
+        <p className="text-gray-600">Crowdsource legal opinions • Phone a friend • Poll the audience</p>
+      </div>
+
+      {/* Ask Question */}
+      <div className="bg-white rounded-lg shadow-sm mb-6 p-6">
+        <h2 className="text-lg font-semibold mb-4 flex items-center">
+          <MessageSquare className="mr-2 h-5 w-5" />
+          Ask the Community
+        </h2>
+        <textarea
+          value={newQuestion}
+          onChange={(e) => setNewQuestion(e.target.value)}
+          placeholder="Describe your legal question or scenario..."
+          className="w-full p-3 border border-gray-300 rounded-lg resize-none h-20 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+        <button
+          onClick={handleSubmitQuestion}
+          className="mt-3 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+        >
+          <Send className="mr-2 h-4 w-4" />
+          Post Question
+        </button>
+      </div>
+
+      {/* Category Filter */}
+      <div className="bg-white rounded-lg shadow-sm mb-6 p-4">
+        <div className="flex flex-wrap gap-2">
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                selectedCategory === cat
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {cat === 'all' ? 'All Categories' : cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Questions Feed */}
+      <div className="space-y-4">
+        {filteredQuestions.map(question => (
+          <QuestionCard 
+            key={question.id} 
+            question={question} 
+            responses={responses[question.id] || []}
+            onAddResponse={handleAddResponse}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const QuestionCard = ({ question, responses, onAddResponse }) => {
+  const [showResponses, setShowResponses] = useState(false);
+  const [newResponse, setNewResponse] = useState('');
+
+  const handleSubmitResponse = () => {
+    onAddResponse(question.id, newResponse);
+    setNewResponse('');
+  };
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="p-6">
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <span className="text-sm font-medium text-blue-600">{question.author}</span>
+            <span className="text-sm text-gray-500 ml-2">{question.practice}</span>
+          </div>
+          <span className="text-xs text-gray-500 flex items-center">
+            <Clock className="h-3 w-3 mr-1" />
+            {question.timestamp}
+          </span>
+        </div>
+        
+        <h3 className="text-lg font-medium text-gray-900 mb-4">{question.question}</h3>
+        
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded">
+              {question.category}
+            </span>
+            <button className="flex items-center text-sm text-gray-600 hover:text-gray-800">
+              <ThumbsUp className="h-4 w-4 mr-1" />
+              {question.votes}
+            </button>
+          </div>
+          
+          <button
+            onClick={() => setShowResponses(!showResponses)}
+            className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+          >
+            <Users className="h-4 w-4 mr-1" />
+            {question.responses} responses
+          </button>
+        </div>
+      </div>
+
+      {showResponses && (
+        <div className="border-t border-gray-200 p-6">
+          {/* Existing Responses */}
+          <div className="space-y-4 mb-4">
+            {responses.map((response, idx) => (
+              <div key={idx} className="bg-gray-50 rounded-lg p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <span className="text-sm font-medium text-gray-900">{response.author}</span>
+                    <span className="text-sm text-gray-500 ml-2">{response.practice}</span>
+                  </div>
+                  <button className="flex items-center text-sm text-gray-600 hover:text-gray-800">
+                    <ThumbsUp className="h-3 w-3 mr-1" />
+                    {response.votes}
+                  </button>
+                </div>
+                <p className="text-gray-700">{response.content}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Add Response */}
+          <div className="border-t border-gray-200 pt-4">
+            <textarea
+              value={newResponse}
+              onChange={(e) => setNewResponse(e.target.value)}
+              placeholder="Share your insights or experience..."
+              className="w-full p-3 border border-gray-300 rounded-lg resize-none h-16 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <button
+              onClick={handleSubmitResponse}
+              className="mt-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm"
+            >
+              Add Response
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default LegalBulletinBoard;
